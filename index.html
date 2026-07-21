@@ -1,0 +1,981 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Game XO Online P2P</title>
+    <script src="https://unpkg.com/peerjs@1.5.2/dist/peerjs.min.js"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            padding: 20px;
+        }
+
+        .container {
+            background: white;
+            border-radius: 20px;
+            padding: 30px;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+            max-width: 650px;
+            width: 100%;
+        }
+
+        h1 {
+            text-align: center;
+            color: #333;
+            margin-bottom: 20px;
+            font-size: 2em;
+        }
+
+        .connection-panel {
+            background: #f8f9fa;
+            padding: 20px;
+            border-radius: 15px;
+            margin-bottom: 20px;
+        }
+
+        .connection-panel h3 {
+            color: #555;
+            margin-bottom: 10px;
+            font-size: 1.1em;
+        }
+
+        .input-group {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 10px;
+            flex-wrap: wrap;
+        }
+
+        .input-group input {
+            flex: 1;
+            padding: 10px;
+            border: 2px solid #ddd;
+            border-radius: 10px;
+            font-size: 1em;
+            min-width: 150px;
+        }
+
+        .input-group input:focus {
+            outline: none;
+            border-color: #667eea;
+        }
+
+        .btn {
+            padding: 10px 20px;
+            border: none;
+            border-radius: 10px;
+            font-size: 1em;
+            font-weight: bold;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .btn:hover {
+            transform: scale(1.05);
+        }
+
+        .btn:active {
+            transform: scale(0.95);
+        }
+
+        .btn-primary {
+            background: #667eea;
+            color: white;
+        }
+
+        .btn-primary:hover {
+            background: #764ba2;
+        }
+
+        .btn-success {
+            background: #28a745;
+            color: white;
+        }
+
+        .btn-success:hover {
+            background: #218838;
+        }
+
+        .btn-danger {
+            background: #dc3545;
+            color: white;
+        }
+
+        .btn-danger:hover {
+            background: #c82333;
+        }
+
+        .btn-info {
+            background: #17a2b8;
+            color: white;
+        }
+
+        .btn-info:hover {
+            background: #138496;
+        }
+
+        .btn-warning {
+            background: #ffc107;
+            color: #333;
+        }
+
+        .btn-warning:hover {
+            background: #e0a800;
+        }
+
+        .btn-secondary {
+            background: #6c757d;
+            color: white;
+        }
+
+        .btn-secondary:hover {
+            background: #5a6268;
+        }
+
+        .btn-group {
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+            margin-top: 10px;
+        }
+
+        .status {
+            padding: 12px;
+            border-radius: 10px;
+            text-align: center;
+            margin-top: 12px;
+            font-weight: 500;
+            transition: all 0.3s;
+        }
+
+        .status.connected {
+            background: #d4edda;
+            color: #155724;
+            border: 2px solid #28a745;
+        }
+
+        .status.waiting {
+            background: #fff3cd;
+            color: #856404;
+            border: 2px solid #ffc107;
+        }
+
+        .status.error {
+            background: #f8d7da;
+            color: #721c24;
+            border: 2px solid #dc3545;
+        }
+
+        .status.info {
+            background: #d1ecf1;
+            color: #0c5460;
+            border: 2px solid #17a2b8;
+        }
+
+        .my-id-box {
+            margin-top: 10px;
+            padding: 10px;
+            background: white;
+            border-radius: 10px;
+            border: 2px dashed #667eea;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 10px;
+        }
+
+        .my-id-box span {
+            font-size: 0.9em;
+            color: #666;
+        }
+
+        .my-id-box strong {
+            color: #333;
+            font-size: 1.1em;
+            word-break: break-all;
+        }
+
+        .game-info {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin: 15px 0;
+            flex-wrap: wrap;
+            gap: 10px;
+        }
+
+        .player-turn {
+            font-size: 1.2em;
+            font-weight: bold;
+            color: #555;
+            padding: 8px 20px;
+            background: #f0f0f0;
+            border-radius: 10px;
+        }
+
+        .game-board {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 10px;
+            margin: 20px 0;
+            background: #667eea;
+            padding: 10px;
+            border-radius: 15px;
+        }
+
+        .cell {
+            background: white;
+            aspect-ratio: 1;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            font-size: 4em;
+            font-weight: bold;
+            color: #333;
+            cursor: pointer;
+            border-radius: 10px;
+            transition: all 0.2s ease;
+            user-select: none;
+        }
+
+        .cell:hover:not(.taken):not(.disabled) {
+            background: #f0f0ff;
+            transform: scale(1.02);
+        }
+
+        .cell.taken, .cell.disabled {
+            cursor: not-allowed;
+        }
+
+        .cell.win-cell {
+            background: #ffd700;
+            animation: pulse 0.5s ease-in-out;
+        }
+
+        .cell.x-move {
+            color: #667eea;
+        }
+
+        .cell.o-move {
+            color: #764ba2;
+        }
+
+        @keyframes pulse {
+            0%, 100% { transform: scale(1); }
+            50% { transform: scale(1.1); }
+        }
+
+        .score-board {
+            display: flex;
+            justify-content: space-around;
+            margin-top: 20px;
+            padding: 15px;
+            background: #f5f5f5;
+            border-radius: 10px;
+            flex-wrap: wrap;
+            gap: 10px;
+        }
+
+        .score-item {
+            display: flex;
+            flex-direction: column;
+            gap: 5px;
+            align-items: center;
+        }
+
+        .score-label {
+            font-size: 0.9em;
+            color: #666;
+        }
+
+        .score-value {
+            font-size: 1.5em;
+            font-weight: bold;
+            color: #333;
+        }
+
+        .player-info {
+            display: flex;
+            justify-content: center;
+            gap: 20px;
+            margin: 10px 0;
+            padding: 10px;
+            background: #f8f9fa;
+            border-radius: 10px;
+            flex-wrap: wrap;
+        }
+
+        .player-badge {
+            padding: 5px 20px;
+            border-radius: 20px;
+            font-weight: bold;
+            font-size: 0.9em;
+        }
+
+        .player-badge.x {
+            background: #667eea;
+            color: white;
+        }
+
+        .player-badge.o {
+            background: #764ba2;
+            color: white;
+        }
+
+        .player-badge.you {
+            border: 3px solid #28a745;
+        }
+
+        .player-badge.opponent {
+            border: 3px solid #dc3545;
+        }
+
+        .player-badge.waiting {
+            background: #e9ecef;
+            color: #6c757d;
+        }
+
+        @media (max-width: 500px) {
+            .container { padding: 15px; }
+            h1 { font-size: 1.5em; }
+            .cell { font-size: 3em; }
+            .input-group { flex-direction: column; }
+            .btn-group { flex-direction: column; }
+            .btn { width: 100%; }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🎮 Game XO Online P2P</h1>
+
+        <!-- Connection Panel -->
+        <div class="connection-panel">
+            <h3>🔗 Kết nối với đối thủ</h3>
+            
+            <!-- ID của bạn -->
+            <div class="my-id-box">
+                <span>🆔 ID của bạn:</span>
+                <strong id="myPeerId">Đang tạo...</strong>
+                <button class="btn btn-info" id="copyIdBtn">📋 Copy</button>
+            </div>
+
+            <!-- Kết nối -->
+            <div style="margin-top: 15px;">
+                <label style="font-weight: 500; color: #555;">Nhập ID đối thủ:</label>
+                <div class="input-group">
+                    <input type="text" id="peerIdInput" placeholder="VD: abc123-def-456">
+                    <button class="btn btn-success" id="connectBtn">🔗 Kết nối</button>
+                </div>
+            </div>
+
+            <!-- Các nút chức năng -->
+            <div class="btn-group">
+                <button class="btn btn-primary" id="createRoomBtn">🎯 Tạo phòng (X)</button>
+                <button class="btn btn-warning" id="joinRoomBtn">🚪 Vào phòng (O)</button>
+                <button class="btn btn-danger" id="disconnectBtn">❌ Ngắt kết nối</button>
+            </div>
+
+            <!-- Trạng thái -->
+            <div class="status waiting" id="statusDisplay">⏳ Đang khởi tạo...</div>
+        </div>
+
+        <!-- Player Info -->
+        <div class="player-info" id="playerInfo">
+            <span class="player-badge waiting" id="playerXBadge">❌ X: Chưa có</span>
+            <span class="player-badge waiting" id="playerOBadge">⭕ O: Chưa có</span>
+        </div>
+
+        <!-- Game Info -->
+        <div class="game-info">
+            <div class="player-turn" id="turnDisplay">⏳ Đợi kết nối...</div>
+            <button class="btn btn-primary" id="resetBtn" disabled>🔄 Chơi lại</button>
+        </div>
+
+        <!-- Board -->
+        <div class="game-board" id="board">
+            <!-- 9 ô sẽ được tạo bằng JavaScript -->
+        </div>
+
+        <!-- Score -->
+        <div class="score-board">
+            <div class="score-item">
+                <span class="score-label">❌ X thắng:</span>
+                <span class="score-value" id="scoreX">0</span>
+            </div>
+            <div class="score-item">
+                <span class="score-label">⭕ O thắng:</span>
+                <span class="score-value" id="scoreO">0</span>
+            </div>
+            <div class="score-item">
+                <span class="score-label">🤝 Hòa:</span>
+                <span class="score-value" id="scoreDraw">0</span>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        class OnlineGameXO {
+            constructor() {
+                // Game state
+                this.board = Array(9).fill(null);
+                this.currentPlayer = 'X';
+                this.gameActive = false;
+                this.mySymbol = null;
+                this.isMyTurn = false;
+                this.score = { X: 0, O: 0, draw: 0 };
+                this.peer = null;
+                this.connection = null;
+                this.connected = false;
+                this.waitingForOpponent = false;
+
+                this.winPatterns = [
+                    [0, 1, 2], [3, 4, 5], [6, 7, 8],
+                    [0, 3, 6], [1, 4, 7], [2, 5, 8],
+                    [0, 4, 8], [2, 4, 6]
+                ];
+
+                // DOM elements
+                this.boardElement = document.getElementById('board');
+                this.turnDisplay = document.getElementById('turnDisplay');
+                this.resetBtn = document.getElementById('resetBtn');
+                this.statusDisplay = document.getElementById('statusDisplay');
+                this.myPeerIdDisplay = document.getElementById('myPeerId');
+                this.peerIdInput = document.getElementById('peerIdInput');
+                this.scoreX = document.getElementById('scoreX');
+                this.scoreO = document.getElementById('scoreO');
+                this.scoreDraw = document.getElementById('scoreDraw');
+                this.playerXBadge = document.getElementById('playerXBadge');
+                this.playerOBadge = document.getElementById('playerOBadge');
+
+                // Buttons
+                this.connectBtn = document.getElementById('connectBtn');
+                this.createRoomBtn = document.getElementById('createRoomBtn');
+                this.joinRoomBtn = document.getElementById('joinRoomBtn');
+                this.copyIdBtn = document.getElementById('copyIdBtn');
+                this.disconnectBtn = document.getElementById('disconnectBtn');
+
+                this.init();
+            }
+
+            init() {
+                this.createBoard();
+                this.setupEventListeners();
+                this.initPeer();
+            }
+
+            initPeer() {
+                this.updateStatus('info', '🔄 Đang tạo ID...');
+                
+                this.peer = new Peer();
+
+                this.peer.on('open', (id) => {
+                    this.myPeerIdDisplay.textContent = id;
+                    this.updateStatus('waiting', '🟢 Sẵn sàng! Tạo phòng hoặc nhập ID đối thủ để kết nối');
+                    this.enableButtons(true);
+                });
+
+                this.peer.on('connection', (conn) => {
+                    this.handleIncomingConnection(conn);
+                });
+
+                this.peer.on('error', (err) => {
+                    console.error('Peer error:', err);
+                    if (err.type === 'unavailable-id') {
+                        this.updateStatus('error', '❌ ID đã được sử dụng! Đang tạo ID mới...');
+                        this.peer.destroy();
+                        this.initPeer();
+                    } else {
+                        this.updateStatus('error', '❌ Lỗi: ' + err.message);
+                    }
+                });
+
+                this.peer.on('disconnected', () => {
+                    this.handleDisconnect();
+                });
+            }
+
+            setupEventListeners() {
+                this.connectBtn.addEventListener('click', () => this.connectToPeer());
+                this.createRoomBtn.addEventListener('click', () => this.createRoom());
+                this.joinRoomBtn.addEventListener('click', () => this.joinRoom());
+                this.copyIdBtn.addEventListener('click', () => this.copyPeerId());
+                this.disconnectBtn.addEventListener('click', () => this.disconnect());
+                this.resetBtn.addEventListener('click', () => this.resetGame());
+                
+                this.peerIdInput.addEventListener('keypress', (e) => {
+                    if (e.key === 'Enter') this.connectToPeer();
+                });
+            }
+
+            createBoard() {
+                this.boardElement.innerHTML = '';
+                for (let i = 0; i < 9; i++) {
+                    const cell = document.createElement('div');
+                    cell.className = 'cell disabled';
+                    cell.dataset.index = i;
+                    cell.addEventListener('click', () => this.handleCellClick(i));
+                    this.boardElement.appendChild(cell);
+                }
+            }
+
+            createRoom() {
+                if (this.connected) {
+                    this.updateStatus('error', '⚠️ Bạn đã có kết nối!');
+                    return;
+                }
+                
+                this.mySymbol = 'X';
+                this.isMyTurn = true;
+                this.gameActive = true;
+                this.waitingForOpponent = true;
+                
+                this.updateStatus('waiting', '🎯 Đã tạo phòng! Chờ đối thủ kết nối...');
+                this.turnDisplay.textContent = '⏳ Đang chờ đối thủ...';
+                this.enableGame(false);
+                
+                // Cập nhật badge
+                this.updatePlayerBadges();
+                
+                // Reset board
+                this.resetBoard();
+            }
+
+            joinRoom() {
+                if (this.connected) {
+                    this.updateStatus('error', '⚠️ Bạn đã có kết nối!');
+                    return;
+                }
+                
+                // Kết nối đến đối thủ
+                const peerId = this.peerIdInput.value.trim();
+                if (!peerId) {
+                    this.updateStatus('error', '⚠️ Vui lòng nhập ID đối thủ!');
+                    return;
+                }
+                
+                if (peerId === this.peer.id) {
+                    this.updateStatus('error', '⚠️ Không thể kết nối với chính mình!');
+                    return;
+                }
+                
+                this.connectToPeer(peerId);
+            }
+
+            connectToPeer(peerId = null) {
+                const id = peerId || this.peerIdInput.value.trim();
+                if (!id) {
+                    this.updateStatus('error', '⚠️ Vui lòng nhập ID đối thủ!');
+                    return;
+                }
+
+                if (id === this.peer.id) {
+                    this.updateStatus('error', '⚠️ Không thể kết nối với chính mình!');
+                    return;
+                }
+
+                if (this.connected) {
+                    this.updateStatus('error', '⚠️ Bạn đã có kết nối!');
+                    return;
+                }
+
+                this.updateStatus('info', `🔄 Đang kết nối đến ${id}...`);
+                const conn = this.peer.connect(id);
+                this.handleConnection(conn);
+            }
+
+            handleIncomingConnection(conn) {
+                if (this.connected) {
+                    conn.close();
+                    this.updateStatus('error', '⚠️ Đã có kết nối! Từ chối kết nối mới');
+                    return;
+                }
+
+                this.updateStatus('info', '📥 Đang nhận kết nối...');
+                this.handleConnection(conn);
+            }
+
+            handleConnection(conn) {
+                this.connection = conn;
+                
+                conn.on('open', () => {
+                    this.connected = true;
+                    this.connection = conn;
+                    
+                    // Xác định vai trò
+                    if (!this.mySymbol) {
+                        // Người nhận kết nối sẽ là O
+                        this.mySymbol = 'O';
+                        this.isMyTurn = false;
+                        this.gameActive = true;
+                        
+                        // Gửi symbol cho đối thủ
+                        this.sendMessage({ 
+                            type: 'symbol', 
+                            symbol: 'X',
+                            mySymbol: this.mySymbol 
+                        });
+                    }
+                    
+                    this.updateStatus('connected', '✅ Đã kết nối thành công!');
+                    this.enableGame(true);
+                    this.updateUI();
+                    this.updatePlayerBadges();
+                    this.turnDisplay.textContent = `⏳ Lượt của: ${this.currentPlayer}`;
+                    
+                    // Reset board
+                    this.resetBoard();
+                });
+
+                conn.on('data', (data) => {
+                    this.handleMessage(data);
+                });
+
+                conn.on('close', () => {
+                    this.handleDisconnect();
+                });
+
+                conn.on('error', (err) => {
+                    console.error('Connection error:', err);
+                    this.updateStatus('error', '❌ Mất kết nối!');
+                    this.handleDisconnect();
+                });
+            }
+
+            handleMessage(data) {
+                console.log('📩 Nhận:', data);
+                
+                switch(data.type) {
+                    case 'symbol':
+                        if (!this.mySymbol) {
+                            this.mySymbol = data.symbol;
+                            this.isMyTurn = this.mySymbol === 'X';
+                            this.gameActive = true;
+                            this.updateUI();
+                            this.updatePlayerBadges();
+                            this.updateStatus('connected', `✅ Đã kết nối! Bạn là ${this.mySymbol}`);
+                            this.turnDisplay.textContent = `⏳ Lượt của: ${this.currentPlayer}`;
+                            this.enableGame(true);
+                        }
+                        break;
+                        
+                    case 'move':
+                        if (this.gameActive) {
+                            this.makeMove(data.index, data.player);
+                            this.currentPlayer = this.currentPlayer === 'X' ? 'O' : 'X';
+                            this.isMyTurn = !this.isMyTurn;
+                            this.updateUI();
+                            this.checkGameOver();
+                        }
+                        break;
+                        
+                    case 'reset':
+                        this.resetGameInternal();
+                        break;
+                        
+                    case 'game_over':
+                        this.handleGameOver(data.winner);
+                        break;
+                        
+                    case 'player_info':
+                        this.updatePlayerBadges(data);
+                        break;
+                }
+            }
+
+            handleCellClick(index) {
+                if (!this.connected || !this.gameActive || !this.isMyTurn) return;
+                if (this.board[index] !== null) return;
+                if (this.currentPlayer !== this.mySymbol) return;
+
+                // Thực hiện nước đi
+                this.makeMove(index, this.mySymbol);
+                this.currentPlayer = this.currentPlayer === 'X' ? 'O' : 'X';
+                this.isMyTurn = false;
+                
+                // Gửi cho đối thủ
+                this.sendMessage({
+                    type: 'move',
+                    index: index,
+                    player: this.mySymbol
+                });
+
+                this.updateUI();
+                this.checkGameOver();
+            }
+
+            makeMove(index, player) {
+                this.board[index] = player;
+                const cell = this.boardElement.children[index];
+                cell.textContent = player;
+                cell.classList.add('taken', `${player.toLowerCase()}-move`);
+                cell.classList.remove('disabled');
+            }
+
+            checkGameOver() {
+                // Kiểm tra thắng
+                const winner = this.checkWinner();
+                if (winner) {
+                    this.gameActive = false;
+                    const winPattern = this.getWinPattern(winner);
+                    if (winPattern) {
+                        this.highlightWinCells(winPattern);
+                    }
+                    this.updateScore(winner);
+                    this.turnDisplay.textContent = `🎉 ${winner} thắng!`;
+                    this.sendMessage({ type: 'game_over', winner: winner });
+                    this.enableGame(false);
+                    return true;
+                }
+
+                // Kiểm tra hòa
+                if (this.board.every(cell => cell !== null)) {
+                    this.gameActive = false;
+                    this.updateScore('draw');
+                    this.turnDisplay.textContent = '🤝 Hòa!';
+                    this.sendMessage({ type: 'game_over', winner: 'draw' });
+                    this.enableGame(false);
+                    return true;
+                }
+
+                // Cập nhật lượt
+                this.updateUI();
+                return false;
+            }
+
+            checkWinner() {
+                for (const pattern of this.winPatterns) {
+                    if (pattern.every(index => this.board[index] === 'X')) {
+                        return 'X';
+                    }
+                    if (pattern.every(index => this.board[index] === 'O')) {
+                        return 'O';
+                    }
+                }
+                return null;
+            }
+
+            getWinPattern(player) {
+                for (const pattern of this.winPatterns) {
+                    if (pattern.every(index => this.board[index] === player)) {
+                        return pattern;
+                    }
+                }
+                return null;
+            }
+
+            highlightWinCells(pattern) {
+                pattern.forEach(index => {
+                    this.boardElement.children[index].classList.add('win-cell');
+                });
+            }
+
+            handleGameOver(winner) {
+                if (winner === 'X' || winner === 'O') {
+                    const winPattern = this.getWinPattern(winner);
+                    if (winPattern) {
+                        this.highlightWinCells(winPattern);
+                    }
+                    this.updateScore(winner);
+                    this.turnDisplay.textContent = `🎉 ${winner} thắng!`;
+                } else if (winner === 'draw') {
+                    this.updateScore('draw');
+                    this.turnDisplay.textContent = '🤝 Hòa!';
+                }
+                this.gameActive = false;
+                this.isMyTurn = false;
+                this.enableGame(false);
+                this.updateUI();
+            }
+
+            updateScore(winner) {
+                if (winner === 'X' || winner === 'O') {
+                    this.score[winner]++;
+                    this[`score${winner}`].textContent = this.score[winner];
+                } else if (winner === 'draw') {
+                    this.score.draw++;
+                    this.scoreDraw.textContent = this.score.draw;
+                }
+            }
+
+            resetGame() {
+                if (!this.connected) {
+                    this.updateStatus('error', '⚠️ Chưa có kết nối!');
+                    return;
+                }
+                this.sendMessage({ type: 'reset' });
+                this.resetGameInternal();
+            }
+
+            resetGameInternal() {
+                this.board = Array(9).fill(null);
+                this.gameActive = true;
+                this.currentPlayer = 'X';
+                this.isMyTurn = this.mySymbol === 'X';
+                
+                // Reset board UI
+                Array.from(this.boardElement.children).forEach(cell => {
+                    cell.textContent = '';
+                    cell.className = 'cell';
+                    if (!this.gameActive || !this.connected) {
+                        cell.classList.add('disabled');
+                    }
+                });
+
+                this.updateUI();
+                this.turnDisplay.textContent = `⏳ Lượt của: ${this.currentPlayer}`;
+                this.enableGame(true);
+            }
+
+            resetBoard() {
+                this.board = Array(9).fill(null);
+                Array.from(this.boardElement.children).forEach(cell => {
+                    cell.textContent = '';
+                    cell.className = 'cell';
+                    if (!this.connected || !this.gameActive) {
+                        cell.classList.add('disabled');
+                    }
+                });
+            }
+
+            updateUI() {
+                // Cập nhật display
+                if (this.gameActive && this.connected) {
+                    this.turnDisplay.textContent = `⏳ Lượt của: ${this.currentPlayer}`;
+                    if (this.isMyTurn && this.currentPlayer === this.mySymbol) {
+                        this.turnDisplay.textContent += ` (Lượt của bạn)`;
+                    }
+                }
+                
+                // Cập nhật badges
+                this.updatePlayerBadges();
+                
+                // Enable/disable cells
+                Array.from(this.boardElement.children).forEach((cell, index) => {
+                    if (this.board[index] === null && this.gameActive && this.isMyTurn && this.connected) {
+                        cell.classList.remove('disabled');
+                    } else {
+                        cell.classList.add('disabled');
+                    }
+                });
+            }
+
+            updatePlayerBadges(data = null) {
+                if (data) {
+                    // Cập nhật từ dữ liệu nhận được
+                }
+                
+                const xPlayer = this.mySymbol === 'X' ? 'Bạn' : (this.connected ? 'Đối thủ' : 'Chưa có');
+                const oPlayer = this.mySymbol === 'O' ? 'Bạn' : (this.connected ? 'Đối thủ' : 'Chưa có');
+                
+                this.playerXBadge.textContent = `❌ X: ${xPlayer}`;
+                this.playerXBadge.className = `player-badge x${this.mySymbol === 'X' ? ' you' : (this.connected ? ' opponent' : ' waiting')}`;
+                
+                this.playerOBadge.textContent = `⭕ O: ${oPlayer}`;
+                this.playerOBadge.className = `player-badge o${this.mySymbol === 'O' ? ' you' : (this.connected ? ' opponent' : ' waiting')}`;
+            }
+
+            enableGame(enabled) {
+                this.resetBtn.disabled = !enabled;
+                if (enabled) {
+                    this.resetBtn.textContent = '🔄 Chơi lại';
+                } else {
+                    this.resetBtn.textContent = '⏳ Đợi...';
+                }
+            }
+
+            enableButtons(enabled) {
+                this.connectBtn.disabled = !enabled;
+                this.createRoomBtn.disabled = !enabled;
+                this.joinRoomBtn.disabled = !enabled;
+            }
+
+            updateStatus(type, message) {
+                this.statusDisplay.className = `status ${type}`;
+                this.statusDisplay.textContent = message;
+            }
+
+            copyPeerId() {
+                const id = this.myPeerIdDisplay.textContent;
+                if (id && id !== 'Đang tạo...') {
+                    navigator.clipboard.writeText(id).then(() => {
+                        this.updateStatus('info', '✅ Đã copy ID vào clipboard!');
+                        setTimeout(() => {
+                            this.updateStatus('waiting', '🟢 Sẵn sàng! Tạo phòng hoặc nhập ID đối thủ để kết nối');
+                        }, 2000);
+                    }).catch(() => {
+                        // Fallback
+                        const textArea = document.createElement('textarea');
+                        textArea.value = id;
+                        document.body.appendChild(textArea);
+                        textArea.select();
+                        document.execCommand('copy');
+                        document.body.removeChild(textArea);
+                        this.updateStatus('info', '✅ Đã copy ID!');
+                    });
+                } else {
+                    this.updateStatus('error', '⚠️ Chưa có ID để copy!');
+                }
+            }
+
+            disconnect() {
+                if (this.connection) {
+                    this.connection.close();
+                    this.connection = null;
+                }
+                this.handleDisconnect();
+            }
+
+            handleDisconnect() {
+                this.connected = false;
+                this.connection = null;
+                this.gameActive = false;
+                this.isMyTurn = false;
+                this.mySymbol = null;
+                this.waitingForOpponent = false;
+                
+                this.updateStatus('waiting', '🔌 Đã ngắt kết nối! Tạo phòng hoặc kết nối lại');
+                this.turnDisplay.textContent = '⏳ Đợi kết nối...';
+                this.enableGame(false);
+                this.enableButtons(true);
+                this.resetBoard();
+                this.updatePlayerBadges();
+                
+                // Reset score?
+                // this.score = { X: 0, O: 0, draw: 0 };
+                // this.updateScoreDisplay();
+            }
+
+            sendMessage(data) {
+                if (this.connection && this.connected) {
+                    this.connection.send(data);
+                }
+            }
+
+            updateScoreDisplay() {
+                this.scoreX.textContent = this.score.X;
+                this.scoreO.textContent = this.score.O;
+                this.scoreDraw.textContent = this.score.draw;
+            }
+        }
+
+        // Khởi tạo game khi trang load
+        document.addEventListener('DOMContentLoaded', () => {
+            new OnlineGameXO();
+        });
+    </script>
+</body>
+</html>
